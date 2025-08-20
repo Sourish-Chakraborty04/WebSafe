@@ -22,21 +22,30 @@
 WebSafe/
 ├── backend/                    # Backend logic for phishing detection
 │   ├── app.py                 # Flask API for URL analysis
-│   ├── phishing_model.pkl     # Pre-trained ML model
-│   ├── vectorizer.pkl         # Feature extraction vectorizer
-│   └── requirements.txt       # Python dependencies
-├── extension/                 # Chrome extension files
-│   ├── manifest.json          # Extension configuration
-│   ├── popup.html            # Popup UI
-│   ├── popup.js              # Popup logic and API calls
-│   ├── popup.css             # Popup styling
-│   ├── content.js            # Webpage URL scanning
-│   ├── content.css           # Webpage highlight styling
-│   ├── background.js         # Background event handling
-│   ├── icon48.png            # 48x48 icon
-│   └── icon128.png           # 128x128 icon
-├── README.md                  # You're reading it! 📖
-└── LICENSE                    # MIT License
+│   └── backend.log            # Backend logs
+├── chromeextension/           # Chrome-specific extension files
+│   ├── background.js          # Background script for Chrome
+│   ├── content.css            # Styling for webpage highlights
+│   ├── content.js             # Webpage URL scanning script
+│   ├── manifest_v2.json       # Chrome Manifest v2 (legacy)
+│   ├── manifest.json          # Chrome Manifest
+│   ├── popup.css              # Popup styling
+│   ├── popup.html             # Popup UI
+│   └── popup.js               # Popup logic and API calls
+├── firefoxextension/          # Firefox-specific extension files
+│   ├── manifest.json          # Firefox Manifest
+│   ├── popup.css              # Popup styling
+│   ├── popup.html             # Popup UI
+│   └── popup.js               # Popup logic and API calls
+├── icons/                     # Shared icons for both extensions
+│   ├── icon48.png             # 48x48 icon
+│   └── icon128.png            # 128x128 icon
+├── build/                     # Build artifacts
+├── extension_build.py         # Build script for extensions
+├── LICENSE                    # MIT License
+├── package.json               # Project metadata (optional)
+├── README.md                  # You're here! 📖
+└── requirements.txt           # Python dependencies
     </code></pre>
     <h2>🛠️ Getting Started</h2>
     <h3>Prerequisites</h3>
