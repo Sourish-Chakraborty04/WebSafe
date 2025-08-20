@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSafe Detector</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">
+        <div class="shield-icon">🛡️</div>
+        <h1>WebSafe</h1>
+      </div>
+      <button class="theme-toggle" id="themeToggle">
+        <span class="theme-icon">🌙</span>
+      </button>
+    </div>
+
+    <div class="input-section">
+      <div class="input-wrapper">
+        <input 
+          type="url" 
+          id="urlInput" 
+          placeholder="Enter or paste a URL to analyze..."
+          class="url-input"
+        >
+        <button id="pasteBtn" class="paste-btn" title="Paste from clipboard">📋</button>
+      </div>
+      <button id="analyzeBtn" class="analyze-btn">
+        <span class="btn-text">Analyze Link</span>
+        <div class="loader hidden" id="loader"></div>
+      </button>
+    </div>
+
+    <div class="results-section hidden" id="resultsSection">
+      <div class="scorecard">
+        <div class="score-header">
+          <h3>Security Score</h3>
+          <div class="score-value" id="scoreValue">-</div>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="score-labels">
+            <span class="dangerous">Dangerous</span>
+            <span class="safe">Safe</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="parameters-section">
+        <h4>Security Parameters Checked</h4>
+        <div class="parameters-list" id="parametersList">
+          <!-- Parameters will be populated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <div class="auto-scan-info">
+      <div class="info-item">
+        <span class="status-dot active"></span>
+        <span>Auto-scanning active pages</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

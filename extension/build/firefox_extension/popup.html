@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishing Shield</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#4CAF50"/>
+                </svg>
+                <h1>Phishing Shield</h1>
+            </div>
+        </div>
+
+        <!-- Current URL Display -->
+        <div class="url-section">
+            <label for="current-url">Current Website:</label>
+            <div class="url-display" id="current-url">
+                <span id="url-text">Loading...</span>
+            </div>
+        </div>
+
+        <!-- Scan Button -->
+        <div class="scan-section">
+            <button id="scan-btn" class="scan-button">
+                <span class="button-text">🔍 Scan This Website</span>
+                <div class="spinner" id="spinner" style="display: none;"></div>
+            </button>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="results" style="display: none;">
+            <div class="result-card" id="result-card">
+                <div class="result-icon" id="result-icon"></div>
+                <div class="result-content">
+                    <h3 id="result-title"></h3>
+                    <p id="result-message"></p>
+                    <div class="confidence-bar">
+                        <label>Confidence:</label>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="confidence-fill"></div>
+                            <span class="confidence-text" id="confidence-text">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Section -->
+        <div class="status-section">
+            <div class="status-indicator" id="api-status">
+                <span class="status-dot"></span>
+                <span class="status-text">API Status: Checking...</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
