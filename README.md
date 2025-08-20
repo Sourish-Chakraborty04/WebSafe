@@ -4,65 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSafe README</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6;
-            color: #333;
-        }
-        h1, h2, h3 {
-            color: #24292e;
-        }
-        h1 {
-            font-size: 2.5em;
-            border-bottom: 1px solid #eaecef;
-            padding-bottom: 10px;
-        }
-        h2 {
-            font-size: 1.75em;
-            border-bottom: 1px solid #eaecef;
-            padding-bottom: 5px;
-        }
-        h3 {
-            font-size: 1.25em;
-        }
-        ul {
-            list-style-type: disc;
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-        pre {
-            background-color: #f6f8fa;
-            padding: 15px;
-            border-radius: 6px;
-            overflow-x: auto;
-        }
-        code {
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-            font-size: 85%;
-            background-color: #f6f8fa;
-            padding: 2px 4px;
-            border-radius: 3px;
-        }
-        a {
-            color: #0366d6;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .emoji {
-            font-size: 1.2em;
-            vertical-align: middle;
-        }
-        .highlight {
-            font-weight: bold;
-            color: #24292e;
-        }
-    </style>
 </head>
 <body>
     <h1>🌐 WebSafe: Your Shield Against Phishing Attacks 🛡️</h1>
