@@ -115,7 +115,7 @@ joblib.dump(model, 'phishing_model.pkl')</code></pre>
         <li><span class="highlight">API Access</span> 🔗:
             <ul>
                 <li>Send a POST request to <code>http://localhost:5000/predict</code>:
-                    <pre><code>{"url": "https://example.com"}</code></pre>
+                    <pre><code>{"url": "https://github.com"}</code></pre>
                 </li>
                 <li>Get a response:
                     <pre><code>{"is_phishing": false, "confidence": 0.95}</code></pre>
