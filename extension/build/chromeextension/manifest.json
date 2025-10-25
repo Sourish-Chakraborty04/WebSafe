@@ -1,14 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "WebSafe - Malicious Link Detector",
+  "name": "WebSafe",
   "version": "1.0.0",
   "description": "Analyze and detect malicious links with real-time protection",
   "permissions": [
+    "tabs",
     "activeTab",
     "storage",
-    "clipboardRead",
     "scripting",
-    "tabs"
+    "webNavigation",
+    "notifications",
+    "<all_urls>"
   ],
   "host_permissions": [
     "http://localhost:5000/*",
@@ -19,7 +21,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["http://*/*", "https://*/*"],
       "js": ["content.js"],
       "css": ["content.css"]
     }

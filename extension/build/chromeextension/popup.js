@@ -13,6 +13,7 @@ class WebSafeUI {
   }
 
   init() {
+    document.body.classList.add('popup-collapsed'); // Start collapsed
     this.setupEventListeners();
     this.loadTheme();
     this.checkAutoScanStatus();
@@ -36,6 +37,7 @@ class WebSafeUI {
       this.showLoading(true);
       const analysis = await this.performAnalysis(url);
       this.displayResults(analysis);
+      this.expandPopup(); //this to trigger the animation after results!
     } catch (error) {
       this.showError('Analysis failed. Please try again.');
     } finally {
@@ -143,6 +145,10 @@ class WebSafeUI {
         statusDot.classList.remove('active');
       }
     });
+  }
+    expandPopup() {
+    document.body.classList.remove('popup-collapsed');
+    document.body.classList.add('popup-expanded');
   }
 }
 
