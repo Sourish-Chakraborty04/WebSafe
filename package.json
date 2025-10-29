@@ -1,5 +1,5 @@
 {
-  "name": "WebSafe",
+  "name": "websafe",
   "version": "1.0.0",
   "description": "Chrome extension for phishing URL detection",
   "main": "background.js",
@@ -8,7 +8,7 @@
     "build": "echo \"build script needed\"",
     "test": "echo \"No tests specified\" && exit 0"
   },
-  "author": "Your Name",
+  "author": "WebSafe Team",
   "license": "MIT",
   "dependencies": {
     "react": "^18.2.0",
