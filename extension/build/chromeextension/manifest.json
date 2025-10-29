@@ -9,6 +9,8 @@
     "storage",
     "scripting",
     "webNavigation",
+    "clipboardRead",
+    "scripting",
     "notifications",
     "<all_urls>"
   ],
@@ -21,7 +23,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
+      "matches": ["<all_urls>"],
       "js": ["content.js"],
       "css": ["content.css"]
     }

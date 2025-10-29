@@ -2,14 +2,9 @@
 import os
 import re
 import requests
-import pandas as pd
-import numpy as np
 from urllib.parse import urlparse
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 import joblib
 import whois
 from datetime import datetime
@@ -18,6 +13,7 @@ import ssl
 from bs4 import BeautifulSoup
 import logging
 import warnings
+import catboost  # Added for CatBoost support
 
 # Suppress warnings for cleaner logs
 warnings.filterwarnings('ignore')
@@ -61,25 +57,79 @@ FEATURE_LABELS = {
     'suspicious_words_count': {'name': 'Suspicious Words', 'icon': '🚨', 'description': lambda v: f'{v} suspicious words'}
 }
 
+# FEATURE_THRESHOLDS with inverted CatBoost-derived values
 FEATURE_THRESHOLDS = {
-    'url_length': {'safe': lambda v: v <= 50, 'warning': lambda v: 50 < v <= 100, 'danger': lambda v: v > 100},
-    'has_at_symbol': {'safe': lambda v: v == 0, 'warning': lambda v: False, 'danger': lambda v: v == 1},
-    'has_dash': {'safe': lambda v: v == 0, 'warning': lambda v: False, 'danger': lambda v: v == 1},
-    'subdomain_count': {'safe': lambda v: v <= 1, 'warning': lambda v: v == 2, 'danger': lambda v: v > 2},
-    'is_https': {'safe': lambda v: v == 1, 'warning': lambda v: False, 'danger': lambda v: v == 0},
-    'domain_age_days': {'safe': lambda v: v >= 365, 'warning': lambda v: 30 <= v < 365, 'danger': lambda v: v < 30},
-    'has_ip_address': {'safe': lambda v: v == 0, 'warning': lambda v: False, 'danger': lambda v: v == 1},
-    'redirect_count': {'safe': lambda v: v <= 1, 'warning': lambda v: v == 2, 'danger': lambda v: v > 2},
-    'has_login_form': {'safe': lambda v: v == 0, 'warning': lambda v: False, 'danger': lambda v: v == 1},
-    'has_iframe': {'safe': lambda v: v == 0, 'warning': lambda v: False, 'danger': lambda v: v == 1},
-    'suspicious_words_count': {'safe': lambda v: v == 0, 'warning': lambda v: v == 1, 'danger': lambda v: v > 1}
+    'url_length': {
+        'safe': lambda v: v <= 118.71052631578948,  # Short URLs are safe
+        'warning': lambda v: 118.71052631578948 < v <= 133.60526315789474,
+        'danger': lambda v: 133.60526315789474 < v <= 163.39473684210526,
+        'malware': lambda v: v > 163.39473684210526  # Long URLs are malware
+    },
+    'has_at_symbol': {
+        'safe': lambda v: True,  # No @ symbol is safe
+        'warning': lambda v: False,
+        'danger': lambda v: False,
+        'malware': lambda v: False
+    },
+    'has_dash': {
+        'safe': lambda v: v <= 0,  # No Dash in domain is safe
+        'warning': lambda v: False,
+        'danger': lambda v: v > 0,
+        'malware': lambda v: False
+    },
+    'subdomain_count': {
+        'safe': lambda v: v <= 1,  # Few subdomains are safe
+        'warning': lambda v: 1 < v <= 4,
+        'danger': lambda v: v > 4,  # Many subdomains are dangerous
+        'malware': lambda v: False
+    },
+    'is_https': {
+        'safe': lambda v: v == 1,  # HTTPS is safe
+        'warning': lambda v: False,
+        'danger': lambda v: v == 0,  # Non-HTTPS is dangerous
+        'malware': lambda v: False
+    },
+    'domain_age_days': {
+        'safe': lambda v: True,  # New domains dangerous/safe
+        'warning': lambda v: False,
+        'danger': lambda v: False,
+        'malware': lambda v: False
+    },
+    'has_ip_address': {
+        'safe': lambda v: v == 0,  # No IP address is safe
+        'warning': lambda v: False,
+        'danger': lambda v: v == 1,  # IP address present is dangerous
+        'malware': lambda v: False
+    },
+    'redirect_count': {
+        'safe': lambda v: v <= 1,  # Few redirects safe
+        'warning': lambda v: 1 < v <= 2,
+        'danger': lambda v: v > 2,  # Many redirects dangerous
+        'malware': lambda v: False
+    },
+    'has_login_form': {
+        'safe': lambda v: v <= 0,  # No login form safe
+        'warning': lambda v: False,
+        'danger': lambda v: v > 0,  # Has login form dangerous
+        'malware': lambda v: False
+    },
+    'has_iframe': {
+        'safe': lambda v: v >= 0,  # Presence of iframe safe
+        'warning': lambda v: False,
+        'danger': lambda v: v <= 0,  # No iframe dangerous
+        'malware': lambda v: False
+    },
+    'suspicious_words_count': {
+        'safe': lambda v: v <= 2,  # Few suspicious words safe
+        'warning': lambda v: False,
+        'danger': lambda v: v > 2,  # Many suspicious words dangerous
+        'malware': lambda v: False
+    }
 }
-
 class PhishingDetector:
     def __init__(self):
-        """Initialize the PhishingDetector with model and scaler attributes."""
+        """Initialize the PhishingDetector with model attribute."""
         self.model = None
-        self.scaler = None
         self.feature_names = list(FEATURE_LABELS.keys())
         
     def extract_features(self, url):
@@ -150,91 +200,33 @@ class PhishingDetector:
             logger.warning(f"Failed to analyze page content for {url}: {str(e)}")
         return features
     
-    def create_sample_dataset(self):
-        """Create a sample dataset for training the Random Forest model."""
-        logger.info("Creating sample dataset for model training")
-        phishing_data = [
-            ['http://paypal-verification.suspicious-site.com/login', 1],
-            ['https://amazon-security@fake-amazon.net/verify', 1],
-            ['http://192.168.1.1/bank-login/', 1],
-            ['https://microsoft-support-urgent.click-here.com', 1],
-            ['http://facebook-security-check.verify-now.org', 1],
-            ['https://apple-id-suspended.account-verify.net', 1],
-            ['http://google-drive-share@malicious-site.com', 1],
-            ['https://netflix-payment-failed.urgent-update.org', 1],
-        ]
-        legitimate_data = [
-            ['https://www.google.com', 0],
-            ['https://www.amazon.com', 0],
-            ['https://www.microsoft.com', 0],
-            ['https://www.apple.com', 0],
-            ['https://www.facebook.com', 0],
-            ['https://www.netflix.com', 0],
-            ['https://www.github.com', 0],
-            ['https://www.stackoverflow.com', 0],
-        ]
-        all_data = phishing_data + legitimate_data
-        return pd.DataFrame(all_data, columns=['url', 'is_phishing'])
-    
-    def train_model(self):
-        """Train the Random Forest model with sample data."""
-        logger.info("Starting model training...")
+    def load_model(self):
+        """Load the pre-trained CatBoost model from disk."""
         try:
-            df = self.create_sample_dataset()
-            features_list = [self.extract_features(url) for url in df['url']]
-            
-            X = np.array(features_list)
-            y = df['is_phishing'].values
-            
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-            
-            self.scaler = StandardScaler()
-            X_train_scaled = self.scaler.fit_transform(X_train)
-            X_test_scaled = self.scaler.transform(X_test)
-            
-            self.model = RandomForestClassifier(
-                n_estimators=100,
-                max_depth=10,
-                random_state=42
-            )
-            self.model.fit(X_train_scaled, y_train)
-            
-            accuracy = self.model.score(X_test_scaled, y_test)
-            logger.info(f"Model trained with accuracy: {accuracy:.2f}")
-            
-            joblib.dump(self.model, 'phishing_model.pkl')
-            joblib.dump(self.scaler, 'feature_scaler.pkl')
-            logger.info("Model and scaler saved to disk")
-        except Exception as e:
-            logger.error(f"Error during model training: {str(e)}")
+            self.model = joblib.load('phishing_model.pkl')  # Ensure this matches your saved model file
+            logger.info("CatBoost model loaded successfully")
+        except FileNotFoundError:
+            logger.error("CatBoost model not found. Please train and save the model as 'phishing_model.pkl'.")
             raise
     
-    def load_model(self):
-        """Load the pre-trained model and scaler from disk."""
-        try:
-            self.model = joblib.load('phishing_model.pkl')
-            self.scaler = joblib.load('feature_scaler.pkl')
-            logger.info("Model and scaler loaded successfully")
-        except FileNotFoundError:
-            logger.warning("Model or scaler not found. Training new model...")
-            self.train_model()
-    
     def predict(self, url):
-        """Predict if a URL is phishing or legitimate."""
-        if self.model is None or self.scaler is None:
+        """Predict if a URL is phishing or legitimate using CatBoost."""
+        if self.model is None:
             self.load_model()
         
         try:
             features = self.extract_features(url)
-            features_scaled = self.scaler.transform([features])
-            prediction = self.model.predict(features_scaled)[0]
-            probability = self.model.predict_proba(features_scaled)[0]
+            # CatBoost expects features as a list or array; no scaling needed
+            prediction = self.model.predict([features])[0]
+            probability = self.model.predict_proba([features])[0]
             
             # Convert features to frontend-friendly parameters
             parameters = []
             for name, value in zip(self.feature_names, features):
                 status = 'safe'
-                if FEATURE_THRESHOLDS[name]['danger'](value):
+                if FEATURE_THRESHOLDS[name]['malware'](value):
+                    status = 'malware'
+                elif FEATURE_THRESHOLDS[name]['danger'](value):
                     status = 'danger'
                 elif FEATURE_THRESHOLDS[name]['warning'](value):
                     status = 'warning'
@@ -246,11 +238,15 @@ class PhishingDetector:
                     'description': FEATURE_LABELS[name]['description'](value)
                 })
             
-            # Calculate score (0-100, higher is safer)
-            score = probability[0] * 100 if prediction == 0 else (1 - probability[1]) * 100
+            # Calculate score (0-10, higher is safer; adjust based on CatBoost classes)
+            score = probability[0] * 10 if prediction == 0 else (1 - probability[1]) * 10  # Assuming 0=benign, 1=malware/phishing
+            
+            # Map CatBoost multi-class prediction (0=benign, 1=phishing, 2=defacement, 3=malware)
+            prediction_map = {0: 'legitimate', 1: 'phishing', 2: 'defacement', 3: 'malware'}
+            pred_label = prediction_map.get(prediction, 'unknown')
             
             return {
-                'prediction': 'phishing' if prediction == 1 else 'legitimate',
+                'prediction': pred_label,
                 'score': round(score, 1),
                 'parameters': parameters
             }
@@ -303,7 +299,7 @@ def predict_url():
             'url': url,
             'parameters': result['parameters'],
             'message': ('This website is safe.' if result['prediction'] == 'legitimate' 
-                       else 'Warning: This website may be a phishing attempt!'),
+                       else f'Warning: This website may be a {result["prediction"]} attempt!'),
             'timestamp': datetime.utcnow().isoformat()
         }
         logger.info(f"Prediction for {url}: {response}")
@@ -350,7 +346,7 @@ def batch_predict_url():
                 'score': result['score'],
                 'parameters': result['parameters'],
                 'message': ('This website is safe.' if result['prediction'] == 'legitimate' 
-                           else 'Warning: This website may be a phishing attempt!'),
+                           else f'Warning: This website may be a {result["prediction"]} attempt!'),
                 'timestamp': datetime.utcnow().isoformat()
             })
         
@@ -388,7 +384,7 @@ def home():
 
 if __name__ == '__main__':
     logger.info("Starting WebSafe Detection API...")
-    detector.load_model()  # Load or train the model on startup
+    detector.load_model()  # Load the CatBoost model on startup
     app.run(
         host=BACKEND_CONFIG['HOST'],
         port=BACKEND_CONFIG['PORT'],

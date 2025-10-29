@@ -1,5 +1,6 @@
 class WebSafeUI {
   constructor() {
+    this.autoAnalyzeToggle = document.getElementById('autoAnalyzeToggle');
     this.urlInput = document.getElementById('urlInput');
     this.analyzeBtn = document.getElementById('analyzeBtn');
     this.pasteBtn = document.getElementById('pasteBtn');
@@ -9,6 +10,7 @@ class WebSafeUI {
     this.progressFill = document.getElementById('progressFill');
     this.parametersList = document.getElementById('parametersList');
     this.loader = document.getElementById('loader');
+    this.copyUrlBtn = document.getElementById('copyUrlBtn'); // new button
     this.init();
   }
 
@@ -16,7 +18,9 @@ class WebSafeUI {
     document.body.classList.add('popup-collapsed'); // Start collapsed
     this.setupEventListeners();
     this.loadTheme();
+    this.loadAutoAnalyzeSetting();
     this.checkAutoScanStatus();
+    this.autoFillURL(); // Auto-fill the current tab URL
   }
 
   setupEventListeners() {
@@ -24,6 +28,15 @@ class WebSafeUI {
     this.pasteBtn.addEventListener('click', () => this.handlePaste());
     this.themeToggle.addEventListener('click', () => this.toggleTheme());
     this.urlInput.addEventListener('input', () => this.validateInput());
+    if (this.copyUrlBtn) {
+      this.copyUrlBtn.addEventListener('click', () => this.copyCurrentTabURL());
+    }
+    if (this.autoAnalyzeToggle) {
+      this.autoAnalyzeToggle.addEventListener('change', () => {
+        const isEnabled = this.autoAnalyzeToggle.checked;
+        chrome.storage.sync.set({ autoAnalyze: isEnabled });
+      });
+    }
   }
 
   async handleAnalyze() {
@@ -139,10 +152,9 @@ class WebSafeUI {
     chrome.storage.sync.get(['autoScan'], (result) => {
       const autoScan = result.autoScan !== false;
       const statusDot = document.querySelector('.status-dot');
-      if (autoScan) {
-        statusDot.classList.add('active');
-      } else {
-        statusDot.classList.remove('active');
+      if (statusDot) {
+        if (autoScan) statusDot.classList.add('active');
+        else statusDot.classList.remove('active');
       }
     });
   }
@@ -150,8 +162,56 @@ class WebSafeUI {
     document.body.classList.remove('popup-collapsed');
     document.body.classList.add('popup-expanded');
   }
-}
+  // Copy and auto-fill current tab URL
+  async copyCurrentTabURL() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.url) {
+        await navigator.clipboard.writeText(tab.url);
+        this.urlInput.value = tab.url;
+        this.validateInput();
+        alert("URL copied: " + tab.url);
+      } else {
+        alert("Could not fetch tab URL");
+      }
+    } catch (error) {
+      alert("Failed to copy URL: " + error);
+    }
+  }
 
+  // Auto-fill on popup load
+  // Auto-fill + Auto-analyze current tab URL
+async autoFillURL() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab && tab.url) {
+      this.urlInput.value = tab.url;
+      this.validateInput();
+
+      // Check user's Auto Analyze preference before analyzing
+      chrome.storage.sync.get(['autoAnalyze'], (result) => {
+        const isEnabled = result.autoAnalyze !== false; // default ON
+        if (isEnabled && this.urlInput.value.trim()) {
+          setTimeout(() => {
+            this.handleAnalyze();
+          }, 500); // smooth delay
+        }
+      });
+    }
+  } catch (e) {
+    console.error('Failed to auto-fill or analyze URL:', e);
+  }
+}
+  // Load Auto Analyze setting
+  loadAutoAnalyzeSetting() {
+    chrome.storage.sync.get(['autoAnalyze'], (result) => {
+      const isEnabled = result.autoAnalyze !== false; // default ON
+      if (this.autoAnalyzeToggle) {
+        this.autoAnalyzeToggle.checked = isEnabled;
+      }
+    });
+  }
+}
 document.addEventListener('DOMContentLoaded', () => {
   new WebSafeUI();
 });
